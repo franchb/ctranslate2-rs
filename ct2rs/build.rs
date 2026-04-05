@@ -168,7 +168,15 @@ fn build_ctranslate2() {
     if dnnl {
         cmake.define("WITH_DNNL", "ON");
         include_paths.push(PathBuf::from(env::var("DEP_DNNL_INCLUDE_PATH").unwrap()));
-        library_paths.push(PathBuf::from(env::var("DEP_DNNL_LIBRARY_PATH").unwrap()));
+        let dnnl_lib_path = PathBuf::from(env::var("DEP_DNNL_LIBRARY_PATH").unwrap());
+        library_paths.push(dnnl_lib_path.clone());
+        // onednn-src reports lib/ but cmake may install to lib64/ on some distros
+        let lib64_path = dnnl_lib_path.parent().map(|p| p.join("lib64"));
+        if let Some(p) = lib64_path {
+            if p.exists() {
+                library_paths.push(p);
+            }
+        }
     }
     if openmp_comp {
         println!("cargo:rustc-link-lib=gomp");
@@ -360,6 +368,18 @@ fn link_system_libraries() {
         }
     }
     if cfg!(feature = "dnnl") {
+        // onednn-src may install to lib64/ on some distros (Fedora, RHEL)
+        // but reports lib/ in its metadata — add both search paths
+        if let Ok(lib_path) = env::var("DEP_DNNL_LIBRARY_PATH") {
+            let lib_path = PathBuf::from(lib_path);
+            println!("cargo:rustc-link-search={}", lib_path.display());
+            if let Some(parent) = lib_path.parent() {
+                let lib64 = parent.join("lib64");
+                if lib64.exists() {
+                    println!("cargo:rustc-link-search={}", lib64.display());
+                }
+            }
+        }
         println!("cargo:rustc-link-lib=dnnl");
     }
     if cfg!(feature = "openmp-runtime-comp") {
