@@ -73,6 +73,7 @@ fn build_ctranslate2() {
     cmake
         .define("BUILD_CLI", "OFF")
         .define("BUILD_SHARED_LIBS", "OFF")
+        .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .define("WITH_MKL", "OFF")
         .define("OPENMP_RUNTIME", "NONE")
         .define("CMAKE_POLICY_VERSION_MINIMUM", "3.5");
